@@ -1,4 +1,5 @@
 using Scalar.AspNetCore;
+using SwiftBite.API.DTOs;
 using SwiftBite.API.Hubs;
 using SwiftBite.API.Services;
 
@@ -8,6 +9,7 @@ builder.Services.AddSignalR();
 builder.Services.AddSingleton<TrackingStore>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<OrderStore>();
 
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
     p.WithOrigins("http://localhost:4200","http://localhost:5000")
@@ -30,5 +32,11 @@ app.MapGet("/api/tracking/{orderId}", (string orderId, TrackingStore store) =>
 
 app.MapGet("/api/tracking/active", (TrackingStore store) =>
     Results.Ok(store.GetAll()));
+// Customer confirms locations → we create an order and return an orderId
+app.MapPost("/api/orders", (CreateOrderDto dto, OrderStore orders) =>
+{
+    var order = orders.Create(dto);
+    return Results.Ok(order);
+});
 
 app.Run();
