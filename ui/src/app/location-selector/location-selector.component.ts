@@ -869,7 +869,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   pinMode: 'user' | 'restaurant' = 'user';
   showSuccess  = false;
   panelCollapsed = false;
-
+  orderId: string | null = null;
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -992,7 +992,20 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   setMode(m: 'user' | 'restaurant'): void { this.pinMode = m; }
 
   // ── Predict ───────────────────────────────────────────────────────────────
-  predict(): void { this.showSuccess = true; }
+  async predict(): Promise<void> {
+    const res = await fetch('http://localhost:5000/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userLocation:       { lat: this.userLoc!.lat, lng: this.userLoc!.lng },
+        restaurantLocation: { lat: this.restLoc!.lat, lng: this.restLoc!.lng }
+      })
+    });
+
+    const order = await res.json();
+    this.orderId = order.orderId;   // save it — we'll need it for tracking later
+    this.showSuccess = true;
+  }
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   resetAll(): void {
