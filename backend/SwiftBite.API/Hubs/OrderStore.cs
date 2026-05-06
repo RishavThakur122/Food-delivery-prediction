@@ -21,7 +21,15 @@ public class OrderStore
         _orders[order.OrderId] = order;
         return order;
     }
+public OrderDto? Accept(string orderId, string driverId)
+{
+    var order = Get(orderId);
+    if (order is null) return null;
 
+    order.Status   = "Driver assigned";
+    order.DriverId = driverId;
+    return order;
+}
     public OrderDto? Get(string orderId) =>
         _orders.TryGetValue(orderId, out var o) ? o : null;
 }

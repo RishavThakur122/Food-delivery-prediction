@@ -38,5 +38,21 @@ app.MapPost("/api/orders", (CreateOrderDto dto, OrderStore orders) =>
     var order = orders.Create(dto);
     return Results.Ok(order);
 });
+// Customer polls this to get their order + current delivery snapshot
+app.MapGet("/api/orders/{orderId}", (string orderId, OrderStore orders, TrackingStore tracking) =>
+{
+    var order = orders.Get(orderId);
+    if (order is null) return Results.NotFound();
 
+    // attach live tracking snapshot if a driver has already registered
+    var snap = tracking.Get(orderId);
+
+    return Results.Ok(new { order, tracking = snap });
+});
+// Driver accepts an order
+app.MapPost("/api/orders/{orderId}/accept", (string orderId, string driverId, OrderStore orders) =>
+{
+    var order = orders.Accept(orderId, driverId);
+    return order is null ? Results.NotFound() : Results.Ok(order);
+});
 app.Run();

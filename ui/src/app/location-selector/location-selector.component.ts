@@ -1006,6 +1006,14 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     this.orderId = order.orderId;   // save it — we'll need it for tracking later
     this.showSuccess = true;
   }
+  
+  
+async fetchOrder(orderId: string): Promise<void> {
+  const res = await fetch(`http://localhost:5000/api/orders/${orderId}`);
+  const data = await res.json();
+  console.log('Order:', data.order);
+  console.log('Tracking:', data.tracking); // null for now
+}
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   resetAll(): void {

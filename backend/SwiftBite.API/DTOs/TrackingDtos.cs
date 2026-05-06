@@ -39,11 +39,13 @@ public class CreateOrderDto
 }
 
 // We send this back
+
 public class OrderDto
 {
     public string OrderId { get; set; } = "";
     public CoordinateDto UserLocation { get; set; } = new(0, 0);
     public CoordinateDto RestaurantLocation { get; set; } = new(0, 0);
     public string Status { get; set; } = "Waiting for driver";
+    public string? DriverId { get; set; }          // ← add this line
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
