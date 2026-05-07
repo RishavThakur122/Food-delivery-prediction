@@ -17,24 +17,35 @@ builder.Services.AddCors(o => o.AddPolicy("dev", p =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
+
+
     app.UseSwagger();
-    app.MapScalarApiReference();
-}
+   app.MapScalarApiReference("/scalar/v1", options =>
+{
+    options.Title = "SwiftBite API";
+    options.Theme = ScalarTheme.Default;  
+   options.ShowSidebar = true;
+});
+
+
 
 app.UseCors("dev");
 app.MapHub<TrackingHub>("/hubs/tracking");
 
 // REST fallback — for HTTP polling when SignalR isn't available
-app.MapGet("/api/tracking/{orderId}", (string orderId, TrackingStore store) =>
-    store.Get(orderId) is { } snap ? Results.Ok(snap) : Results.NotFound());
+app.MapGet("/api/tracking/{orderId}", (string orderId, TrackingStore store)=> {
+    string check="running proper";
+    return Results.Ok(check);
+    // store.Get(orderId) is { } snap ? Results.Ok(snap) : Results.NotFound()
+    });
 
 app.MapGet("/api/tracking/active", (TrackingStore store) =>
     Results.Ok(store.GetAll()));
 // Customer confirms locations → we create an order and return an orderId
 app.MapPost("/api/orders", (CreateOrderDto dto, OrderStore orders) =>
-{
+{   
+    dto.UserLocation = new CoordinateDto(1.2,3.2);
+    dto.RestaurantLocation=new CoordinateDto(4.3,5.6);
     var order = orders.Create(dto);
     return Results.Ok(order);
 });
