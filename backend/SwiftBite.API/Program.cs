@@ -2,7 +2,7 @@ using Scalar.AspNetCore;
 using SwiftBite.API.DTOs;
 using SwiftBite.API.Hubs;
 using SwiftBite.API.Services;
-
+using Microsoft.AspNetCore.SignalR;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSignalR();
@@ -65,5 +65,37 @@ app.MapPost("/api/orders/{orderId}/accept", (string orderId, string driverId, Or
 {
     var order = orders.Accept(orderId, driverId);
     return order is null ? Results.NotFound() : Results.Ok(order);
+
 });
+app.MapGet("/api/orders/{orderId}/status", (string orderId, OrderStore orders, TrackingStore tracking) =>
+{
+    var order = orders.Get(orderId);
+    if (order is null) return Results.NotFound();
+
+    var snap = tracking.Get(orderId);
+
+    return Results.Ok(new
+    {
+        orderId = order.OrderId,
+        status = order.Status,
+        driverId = order.DriverId,
+        distanceToUser = snap?.DistanceToUserKm,
+        driverLocation = snap?.DeliveryLocation,
+        lastUpdated = snap?.LastUpdated
+    });
+});
+
+// Cancel an order — notifies everyone via SignalR
+app.MapMethods("/api/orders/{orderId}/cancel", ["PATCH"],
+    async (string orderId, OrderStore orders, IHubContext<TrackingHub> hub) =>
+    {
+        var order = orders.Get(orderId);
+        if (order is null) return Results.NotFound();
+
+        order.Status = "Cancelled";
+
+        await hub.Clients.Group(orderId).SendAsync("OrderCancelled", orderId);
+
+        return Results.Ok(order);
+    });
 app.Run();

@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule, DecimalPipe, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import * as signalR from '@microsoft/signalr';
 
 declare const L: any;
 
@@ -869,7 +870,10 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   pinMode: 'user' | 'restaurant' = 'user';
   showSuccess  = false;
   panelCollapsed = false;
-  orderId: string | null = null;
+    orderId: string | null = null;
+    private hubConnection: signalR.HubConnection | null = null;
+    driverLocation: { lat: number; lng: number } | null = null;
+    orderStatus: string = '';
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -895,8 +899,46 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
 
   ngOnInit(): void      { this.loadLeaflet(); }
   ngAfterViewInit(): void { if ((window as any).L) this.initMap(); }
-  ngOnDestroy(): void   { this.map?.remove(); }
+    ngOnDestroy(): void   {
+        this.map?.remove();
+        this.hubConnection?.stop(); 
+    }
 
+    private startSignalR(orderId: string): void {
+        this.hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl('http://localhost:5000/hubs/tracking')
+            .withAutomaticReconnect()
+            .build();
+
+        // driver moved — update marker on map
+        this.hubConnection.on('LocationUpdated', (snap: any) => {
+            this.zone.run(() => {
+                this.driverLocation = snap.deliveryLocation;
+                this.orderStatus = snap.status;
+            });
+        });
+
+        // order cancelled
+        this.hubConnection.on('OrderCancelled', () => {
+            this.zone.run(() => {
+                this.orderStatus = 'Cancelled';
+            });
+        });
+
+        // delivery arrived
+        this.hubConnection.on('DeliveryArrived', () => {
+            this.zone.run(() => {
+                this.orderStatus = 'Arrived';
+            });
+        });
+
+        this.hubConnection
+            .start()
+            .then(() => this.hubConnection!.invoke('WatchOrder', {
+                orderId,
+                userLocation: { lat: this.userLoc!.lat, lng: this.userLoc!.lng }
+            }));
+    }
   // ── Leaflet ───────────────────────────────────────────────────────────────
   private loadLeaflet(): void {
     if ((window as any).L) return;
@@ -930,6 +972,13 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
       }));
     }, 120);
   }
+    startPolling(orderId: string): void {
+        setInterval(async () => {
+            const res = await fetch(`http://localhost:5000/api/orders/${orderId}/status`);
+            const data = await res.json();
+            console.log('Status:', data.status);
+        }, 5000); // every 5 seconds
+    }
 
   // ── Icons ─────────────────────────────────────────────────────────────────
   private uIcon = () => L.divIcon({ className: '', html: '<div class="m-user"></div>', iconSize: [16,16], iconAnchor: [8,8] });
@@ -1003,7 +1052,9 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     });
 
     const order = await res.json();
-    this.orderId = order.orderId;   // save it — we'll need it for tracking later
+     this.orderId = order.orderId;   
+      this.startPolling(this.orderId!);
+
     this.showSuccess = true;
   }
   

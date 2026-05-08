@@ -7,8 +7,11 @@ namespace SwiftBite.API.Hubs;
 public class TrackingHub : Hub
 {
     private readonly TrackingStore _store;
-
-    public TrackingHub(TrackingStore store) => _store = store;
+    private readonly OrderStore _orders;
+    public TrackingHub(TrackingStore store, OrderStore orders) 
+    { _store = store;
+      _orders = orders;
+    }
 
     //Delivery man: register for an order
     public async Task RegisterDelivery(string orderId)
@@ -33,6 +36,8 @@ public class TrackingHub : Hub
             var km = Haversine(update.Location, snap.UserLocation);
             snap.DistanceToUserKm = km;
             snap.Status = km <= 0.2 ? "Arrived" : km <= 0.5 ? "Nearby" : "En Route";
+            var order = _orders.Get(update.OrderId);
+            if (order is not null) order.Status = snap.Status;
         }
 
         _store.Upsert(snap);
