@@ -3,6 +3,7 @@ using SwiftBite.API.DTOs;
 using SwiftBite.API.Hubs;
 using SwiftBite.API.Services;
 using Microsoft.AspNetCore.SignalR;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSignalR();

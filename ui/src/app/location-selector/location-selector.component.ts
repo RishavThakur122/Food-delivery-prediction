@@ -851,6 +851,14 @@ export interface LocPin {
     }
     :host ::ng-deep .m-user { background: var(--grn); }
     :host ::ng-deep .m-rest { background: var(--or); }
+    :host ::ng-deep .m-driver {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #4f8ef7;
+  border: 3px solid white;
+  box-shadow: 0 2px 12px rgba(79,142,247,0.5);
+}
 
     /* ── Responsive ──────────────────────────────────── */
     @media (max-width: 680px) {
@@ -874,6 +882,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     private hubConnection: signalR.HubConnection | null = null;
     driverLocation: { lat: number; lng: number } | null = null;
     orderStatus: string = '';
+    private driverMark: any = null;
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -915,6 +924,10 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
             this.zone.run(() => {
                 this.driverLocation = snap.deliveryLocation;
                 this.orderStatus = snap.status;
+                this.updateDriverMarker(    
+                    snap.deliveryLocation.lat,
+                    snap.deliveryLocation.lng
+                );
             });
         });
 
@@ -983,7 +996,12 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   // ── Icons ─────────────────────────────────────────────────────────────────
   private uIcon = () => L.divIcon({ className: '', html: '<div class="m-user"></div>', iconSize: [16,16], iconAnchor: [8,8] });
   private rIcon = () => L.divIcon({ className: '', html: '<div class="m-rest"></div>', iconSize: [16,16], iconAnchor: [8,8] });
-
+    private driverIcon = () => L.divIcon({
+        className: '',
+        html: '<div class="m-driver"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+    });
   // ── Pinning ───────────────────────────────────────────────────────────────
   private async pinUser(ll: { lat: number; lng: number }): Promise<void> {
     const addr = await this.reverseGeo(ll.lat, ll.lng);
@@ -998,6 +1016,15 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     this.pinMode = 'restaurant';
   }
 
+    private updateDriverMarker(lat: number, lng: number): void {
+        if (this.driverMark) {
+            this.driverMark.setLatLng([lat, lng]);
+        } else {
+            this.driverMark = L.marker([lat, lng], { icon: this.driverIcon() })
+                .addTo(this.map)
+                .bindPopup('🛵 Driver');
+        }
+    }
   private async pinRest(ll: { lat: number; lng: number }): Promise<void> {
     const addr = await this.reverseGeo(ll.lat, ll.lng);
     this.restLoc  = { lat: ll.lat, lng: ll.lng, addr };
@@ -1075,7 +1102,15 @@ async fetchOrder(orderId: string): Promise<void> {
     this.showSuccess = false;
     this.pinMode = 'user';
     if (this.uMark) { this.map.removeLayer(this.uMark); this.uMark = null; }
-    if (this.rMark) { this.map.removeLayer(this.rMark); this.rMark = null; }
+      if (this.rMark) { this.map.removeLayer(this.rMark); this.rMark = null; }
+      if (this.driverMark) {
+          this.map.removeLayer(this.driverMark);
+          this.driverMark = null;
+      }
+      this.hubConnection?.stop();
+      this.hubConnection = null;
+      this.orderStatus = '';
+      this.driverLocation = null;
   }
 
   // ── Nominatim ─────────────────────────────────────────────────────────────
