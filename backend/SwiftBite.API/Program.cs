@@ -3,6 +3,9 @@ using SwiftBite.API.DTOs;
 using SwiftBite.API.Hubs;
 using SwiftBite.API.Services;
 using Microsoft.AspNetCore.SignalR;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +14,20 @@ builder.Services.AddSingleton<TrackingStore>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<OrderStore>();
+builder.Services.AddSingleton<UserStore>();
+builder.Services.AddScoped<AuthService>();
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    });
+
+builder.Services.AddAuthorization();
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
     p.WithOrigins("http://localhost:4200","http://localhost:5000")
      .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
@@ -32,7 +48,8 @@ var app = builder.Build();
 
 app.UseCors("dev");
 app.MapHub<TrackingHub>("/hubs/tracking");
-
+app.UseAuthentication();
+app.UseAuthorization();
 // REST fallback — for HTTP polling when SignalR isn't available
 app.MapGet("/api/tracking/{orderId}", (string orderId, TrackingStore store)=> {
     string check="running proper";
@@ -99,4 +116,17 @@ app.MapMethods("/api/orders/{orderId}/cancel", ["PATCH"],
 
         return Results.Ok(order);
     });
+
+//Auth 
+app.MapPost("/api/auth/register", (RegisterDto dto, AuthService auth) =>
+{
+    var (success, error, result) = auth.Register(dto);
+    return success ? Results.Ok(result) : Results.BadRequest(new { error });
+});
+
+app.MapPost("/api/auth/login", (LoginDto dto, AuthService auth) =>
+{
+    var (success, error, result) = auth.Login(dto);
+    return success ? Results.Ok(result) : Results.Unauthorized();
+});
 app.Run();
