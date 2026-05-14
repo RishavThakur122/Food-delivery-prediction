@@ -5,6 +5,8 @@ import {
 import { CommonModule, DecimalPipe, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as signalR from '@microsoft/signalr';
+import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 declare const L: any;
 
@@ -19,7 +21,21 @@ export interface LocPin {
   standalone: true,
   imports: [CommonModule, FormsModule, DecimalPipe, SlicePipe],
 
-  template: `
+    template: `
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="top-bar-title">Location Selector</div>
+    <div class="top-bar-hint">{{ topHint }}</div>
+  </div>
+  <div class="top-bar-right">
+    <div class="user-pill">
+      <span class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</span>
+      <span class="user-name">{{ userName }}</span>
+    </div>
+    <button class="btn-reset" (click)="resetAll()">Reset</button>
+    <button class="btn-logout" (click)="logout()">Logout</button>
+  </div>
+</div>
 <div class="shell">
 
   <!-- ── Full-bleed map ───────────────────────────────────────── -->
@@ -232,6 +248,57 @@ export interface LocPin {
       display: block;
       height: 100vh;
     }
+
+    .top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--pale);
+  border: 1px solid var(--bdr);
+  border-radius: 20px;
+  padding: 4px 12px 4px 4px;
+}
+
+.user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--or);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-name {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1.5px solid var(--bdr);
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 0.7rem;
+  color: var(--mid);
+  cursor: pointer;
+  font-family: var(--body);
+  transition: all 0.15s;
+}
+.btn-logout:hover {
+  border-color: #E53935;
+  color: #E53935;
+}
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -883,6 +950,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     driverLocation: { lat: number; lng: number } | null = null;
     orderStatus: string = '';
     private driverMark: any = null;
+    userName = this.auth.getUserName();
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -904,7 +972,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   get etaMin(): number { return Math.round(parseFloat(this.distance) * 3 + 8); }
   get etaMax(): number { return this.etaMin + 10; }
 
-  constructor(private zone: NgZone) {}
+    constructor(private zone: NgZone, private auth: AuthService, private router: Router) { }
 
   ngOnInit(): void      { this.loadLeaflet(); }
   ngAfterViewInit(): void { if ((window as any).L) this.initMap(); }
@@ -1015,7 +1083,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     // auto-switch to restaurant mode after pinning user
     this.pinMode = 'restaurant';
   }
-
+    
     private updateDriverMarker(lat: number, lng: number): void {
         if (this.driverMark) {
             this.driverMark.setLatLng([lat, lng]);
@@ -1128,6 +1196,15 @@ async fetchOrder(orderId: string): Promise<void> {
       return (await res.json()).display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     } catch { return `${lat.toFixed(5)}, ${lng.toFixed(5)}`; }
   }
+    get topHint(): string {
+        if (!this.userLoc) return 'Pin your location first';
+        if (!this.restLoc) return 'Now pin the restaurant';
+        return 'Tap map to adjust pins';
+    }
+    logout(): void {
+        this.auth.logout();
+        this.router.navigate(['/login']);
+    }
 
   // ── Haversine ─────────────────────────────────────────────────────────────
   private haversine(a: LocPin, b: LocPin): number {
@@ -1139,3 +1216,4 @@ async fetchOrder(orderId: string): Promise<void> {
   }
   private rad = (d: number) => d * Math.PI / 180;
 }
+//logout
