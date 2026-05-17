@@ -22,20 +22,7 @@ export interface LocPin {
   imports: [CommonModule, FormsModule, DecimalPipe, SlicePipe],
 
     template: `
-<div class="top-bar">
-  <div class="top-bar-left">
-    <div class="top-bar-title">Location Selector</div>
-    <div class="top-bar-hint">{{ topHint }}</div>
-  </div>
-  <div class="top-bar-right">
-    <div class="user-pill">
-      <span class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</span>
-      <span class="user-name">{{ userName }}</span>
-    </div>
-    <button class="btn-reset" (click)="resetAll()">Reset</button>
-    <button class="btn-logout" (click)="logout()">Logout</button>
-  </div>
-</div>
+
 <div class="shell">
 
   <!-- ── Full-bleed map ───────────────────────────────────────── -->
@@ -76,12 +63,16 @@ export interface LocPin {
 
       <!-- brand -->
       <div class="brand">
-        <div class="brand-mark">🛵</div>
-        <div>
-          <div class="brand-name">SwiftBite</div>
-          <div class="brand-tag">Delivery Predictor</div>
-        </div>
-      </div>
+  <div class="brand-mark">🛵</div>
+  <div class="brand-text">
+    <div class="brand-name">SwiftBite</div>
+    <div class="brand-tag">Delivery Predictor</div>
+  </div>
+  <div class="brand-right">
+    <div class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
+    <button class="btn-logout" (click)="logout()">Logout</button>
+  </div>
+</div>
 
       <!-- progress -->
       <div class="progress-track">
@@ -886,7 +877,44 @@ export interface LocPin {
       font-weight: 800;
       color: var(--white);
     }
+    .brand-text { flex: 1; }
 
+.brand-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--or);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1.5px solid var(--bdr);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  color: var(--mid);
+  cursor: pointer;
+  font-family: var(--body);
+  transition: all 0.15s;
+}
+.btn-logout:hover {
+  border-color: #E53935;
+  color: #E53935;
+}
     /* ── Leaflet overrides ───────────────────────────── */
     :host ::ng-deep .leaflet-tile { filter: saturate(0.6) brightness(1.02); }
     :host ::ng-deep .leaflet-container { background: #E8E0D8; }
