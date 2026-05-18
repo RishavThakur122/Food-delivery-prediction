@@ -17,18 +17,25 @@ public class OllamaService
     }
 
     //Predict delivery time in minutes 
-    public async Task<int> PredictMinutes(double distanceKm, double speedKmh, int hour)
+    public async Task<int> PredictMinutes(
+    double roadDistanceKm,     
+    double osrmDurationMinutes, 
+    double tomtomDurationMinutes, 
+    double trafficDelayMinutes, 
+    int hour)
     {
-        var prompt = $"A delivery driver is {distanceKm:F1} km away moving at {speedKmh:F0} kmh. " +
-                     $"Current time is {hour}:00. " +
-                     $"Predict delivery time in minutes considering traffic. " +
-                     $"Reply ONLY with valid JSON like this: {{\"minutes\":18}}";
+        var prompt = $"A delivery driver is {roadDistanceKm:F1} km away via road. " +
+                     $"Normal routing estimate: {osrmDurationMinutes:F0} minutes. " +
+                     $"Live traffic estimate: {tomtomDurationMinutes:F0} minutes. " +
+                     $"Current traffic is adding {trafficDelayMinutes:F0} extra minutes. " +
+                     $"Time of day: {hour}:00. " +
+                     $"Give a realistic final delivery estimate in minutes. " +
+                     $"Reply ONLY with valid JSON: {{\"minutes\":18}}";
 
         var raw = await Ask(prompt);
 
         try
         {
-            // extract JSON from response
             var start = raw.IndexOf('{');
             var end = raw.LastIndexOf('}');
             if (start >= 0 && end > start)
@@ -38,11 +45,10 @@ public class OllamaService
                 return doc.RootElement.GetProperty("minutes").GetInt32();
             }
         }
-        catch { }
+        catch { /* fall through */ }
 
-        // fallback — simple math if Ollama response can't be parsed
-        var fallback = (distanceKm / Math.Max(speedKmh, 5)) * 60 * 1.2;
-        return (int)Math.Round(fallback);
+        // fallback — use TomTom duration directly if Ollama fails
+        return (int)Math.Round(tomtomDurationMinutes);
     }
 
     // Generate delay reason text

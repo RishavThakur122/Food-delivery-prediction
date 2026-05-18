@@ -11,12 +11,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<TrackingStore>();
+builder.Services.AddSingleton<OsrmService>();
+builder.Services.AddSingleton<TomTomService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<OrderStore>();
 builder.Services.AddSingleton<UserStore>();
 builder.Services.AddScoped<AuthService>();
-
+builder.Services.AddSingleton<OllamaService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
     {

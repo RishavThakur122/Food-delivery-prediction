@@ -49,3 +49,11 @@ public class OrderDto
     public string? DriverId { get; set; }          // ← add this line
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+public class RouteInfo
+{
+    public double RoadDistanceKm { get; set; }
+    public double OsrmDurationMinutes { get; set; }
+    public double TomTomDurationMinutes { get; set; }
+    public double TrafficDelayMinutes { get; set; }
+    public string Geometry { get; set; } = ""; // polyline for map
+}
