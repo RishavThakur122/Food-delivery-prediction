@@ -8,9 +8,13 @@ public class TrackingHub : Hub
 {
     private readonly TrackingStore _store;
     private readonly OrderStore _orders;
-    public TrackingHub(TrackingStore store, OrderStore orders) 
-    { _store = store;
-      _orders = orders;
+    private readonly DelayDetector _delay;
+
+    public TrackingHub(TrackingStore store, OrderStore orders, DelayDetector delay)
+    {
+        _store = store;
+        _orders = orders;
+        _delay = delay;
     }
 
     //Delivery man: register for an order
@@ -45,6 +49,7 @@ public class TrackingHub : Hub
 
         if (snap.Status == "Arrived")
             await Clients.Group(update.OrderId).SendAsync("DeliveryArrived", update.OrderId);
+        _ = Task.Run(() => _delay.CheckAsync(update));
     }
 
     //  Customer: subscribe to watch an order

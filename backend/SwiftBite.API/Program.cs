@@ -19,6 +19,7 @@ builder.Services.AddSingleton<OrderStore>();
 builder.Services.AddSingleton<UserStore>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddSingleton<OllamaService>();
+builder.Services.AddSingleton<DelayDetector>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
     {

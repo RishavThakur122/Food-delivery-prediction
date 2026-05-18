@@ -72,7 +72,7 @@ export interface LocPin {
     <div class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
     <button class="btn-logout" (click)="logout()">Logout</button>
   </div>
-</div>
+       </div>
 
       <!-- progress -->
       <div class="progress-track">
@@ -215,6 +215,21 @@ export interface LocPin {
     </div>
   </div>
 
+  <!-- ── Delay Alert Toast ─────────────────────────────────────────── -->
+<div class="delay-toast" *ngIf="showDelayToast">
+  <div class="toast-inner">
+    <div class="toast-icon">⚠️</div>
+    <div class="toast-body">
+      <div class="toast-title">Delivery Running Late</div>
+      <div class="toast-reason">{{ delayReason }}</div>
+      <div class="toast-eta">
+        New estimated arrival: <strong>{{ delayNewEta }}</strong>
+        (+{{ delayExtraMin }} min)
+      </div>
+    </div>
+    <button class="toast-close" (click)="showDelayToast = false">✕</button>
+  </div>
+</div>
 </div>
   `,
 
@@ -954,6 +969,81 @@ export interface LocPin {
   border: 3px solid white;
   box-shadow: 0 2px 12px rgba(79,142,247,0.5);
 }
+.delay-toast {
+  position: absolute;
+  bottom: 28px;
+  right: 28px;
+  z-index: 9000;
+  max-width: 360px;
+  width: calc(100% - 56px);
+  animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.toast-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--bdr);
+  border-left: 4px solid #F59E0B;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(24,19,15,0.15);
+}
+
+.toast-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.toast-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toast-title {
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.toast-reason {
+  font-size: 0.78rem;
+  color: var(--mid);
+  line-height: 1.5;
+}
+
+.toast-eta {
+  font-size: 0.74rem;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+.toast-eta strong {
+  color: var(--or);
+  font-weight: 700;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  font-size: 0.7rem;
+  color: var(--mid);
+  cursor: pointer;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.toast-close:hover { color: var(--ink); }
 
     /* ── Responsive ──────────────────────────────────── */
     @media (max-width: 680px) {
@@ -979,6 +1069,10 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     orderStatus: string = '';
     private driverMark: any = null;
     userName = this.auth.getUserName();
+    showDelayToast = false;
+    delayReason = '';
+    delayExtraMin = 0;
+    delayNewEta = '';
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -1024,6 +1118,21 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
                     snap.deliveryLocation.lat,
                     snap.deliveryLocation.lng
                 );
+            });
+        });
+
+        this.hubConnection.on('DelayAlert', (alert: any) => {
+            this.zone.run(() => {
+                this.delayReason = alert.reason;
+                this.delayExtraMin = alert.extraMinutes;
+                this.delayNewEta = new Date(alert.newEta).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                this.showDelayToast = true;
+
+                // auto-hide after 8 seconds
+                setTimeout(() => this.showDelayToast = false, 8000);
             });
         });
 
@@ -1196,7 +1305,11 @@ async fetchOrder(orderId: string): Promise<void> {
     this.userQuery = '';
     this.restQuery = '';
     this.showSuccess = false;
-    this.pinMode = 'user';
+      this.pinMode = 'user';
+      this.showDelayToast = false;
+      this.delayReason = '';
+      this.delayExtraMin = 0;
+      this.delayNewEta = '';
     if (this.uMark) { this.map.removeLayer(this.uMark); this.uMark = null; }
       if (this.rMark) { this.map.removeLayer(this.rMark); this.rMark = null; }
       if (this.driverMark) {

@@ -43,4 +43,3 @@ D:\Project\food-delivery-final\backend\SwiftBite.API\obj\Debug\net10.0\refint\Sw
 D:\Project\food-delivery-final\backend\SwiftBite.API\obj\Debug\net10.0\SwiftBite.API.pdb
 D:\Project\food-delivery-final\backend\SwiftBite.API\obj\Debug\net10.0\SwiftBite.API.genruntimeconfig.cache
 D:\Project\food-delivery-final\backend\SwiftBite.API\obj\Debug\net10.0\ref\SwiftBite.API.dll
-D:\Project\food-delivery-final\backend\SwiftBite.API\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
