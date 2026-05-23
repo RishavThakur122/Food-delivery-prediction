@@ -28,6 +28,7 @@ public class DeliverySnapshot
     public double? Heading { get; set; }
     public double? DistanceToUserKm { get; set; }
     public string Status { get; set; } = "En Route"; // En Route | Nearby | Arrived
+    public string RouteGeometry { get; set; } = "";
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
 }
 

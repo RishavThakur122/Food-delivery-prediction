@@ -10,6 +10,7 @@ public class DelayDetector
     private readonly TomTomService _tomtom;
     private readonly OllamaService _ollama;
     private readonly OrderStore _orders;
+    private readonly TrackingStore _tracking;
     private readonly IHubContext<TrackingHub> _hub;
     private readonly IConfiguration _config;
 
@@ -21,6 +22,7 @@ public class DelayDetector
         TomTomService tomtom,
         OllamaService ollama,
         OrderStore orders,
+         TrackingStore tracking,
         IHubContext<TrackingHub> hub,
         IConfiguration config)
     {
@@ -29,6 +31,7 @@ public class DelayDetector
         _ollama = ollama;
         _orders = orders;
         _hub = hub;
+        _tracking = tracking;
         _config = config;
     }
 
@@ -49,7 +52,12 @@ public class DelayDetector
             order.UserLocation.Lat, order.UserLocation.Lng);
 
         if (osrm is null) return;
-
+        var snap = _tracking.Get(update.OrderId);
+        if (snap is not null)
+        {
+            snap.RouteGeometry = osrm.Geometry;
+            _tracking.Upsert(snap);
+        }
         //  Step 2: get live traffic data 
         var tomtom = await _tomtom.GetLiveRoute(
             update.Location.Lat, update.Location.Lng,

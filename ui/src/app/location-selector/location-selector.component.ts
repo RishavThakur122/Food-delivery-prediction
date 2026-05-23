@@ -1073,6 +1073,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     delayReason = '';
     delayExtraMin = 0;
     delayNewEta = '';
+    
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -1085,7 +1086,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   private map: any   = null;
   private uMark: any = null;
   private rMark: any = null;
-
+   private routeLine: any = null;
   // ── Computed ──────────────────────────────────────────────────────────────
   get distance(): string {
     if (!this.userLoc || !this.restLoc) return '—';
@@ -1114,10 +1115,15 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
             this.zone.run(() => {
                 this.driverLocation = snap.deliveryLocation;
                 this.orderStatus = snap.status;
-                this.updateDriverMarker(    
+                this.updateDriverMarker(
                     snap.deliveryLocation.lat,
                     snap.deliveryLocation.lng
                 );
+
+                // draw route if geometry available
+                if (snap.routeGeometry) {
+                    this.drawRoute(snap.routeGeometry);
+                }
             });
         });
 
@@ -1170,7 +1176,51 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     js.onload = () => this.zone.run(() => this.initMap());
     document.head.appendChild(js);
   }
+    // decode Google/OSRM encoded polyline into [lat, lng] pairs
+    private decodePolyline(encoded: string): [number, number][] {
+        const points: [number, number][] = [];
+        let index = 0, lat = 0, lng = 0;
 
+        while (index < encoded.length) {
+            let b: number, shift = 0, result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            lat += result & 1 ? ~(result >> 1) : result >> 1;
+
+            shift = 0; result = 0;
+            do {
+                b = encoded.charCodeAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            lng += result & 1 ? ~(result >> 1) : result >> 1;
+
+            points.push([lat / 1e5, lng / 1e5]);
+        }
+        return points;
+    }
+    private drawRoute(geometry: string): void {
+        if (!geometry) return;
+
+        const points = this.decodePolyline(geometry);
+        if (!points.length) return;
+
+        if (this.routeLine) {
+            this.map.removeLayer(this.routeLine);
+        }
+
+        this.routeLine = L.polyline(points, {
+            color: '#F7510F',
+            weight: 4,
+            opacity: 0.7,
+            lineJoin: 'round',
+            lineCap: 'round',
+            dashArray: '8, 6'
+        }).addTo(this.map);
+    }
   private initMap(): void {
     setTimeout(() => {
       this.map = L.map(this.mapEl.nativeElement, {
@@ -1315,6 +1365,10 @@ async fetchOrder(orderId: string): Promise<void> {
       if (this.driverMark) {
           this.map.removeLayer(this.driverMark);
           this.driverMark = null;
+      }
+      if (this.routeLine) {
+          this.map.removeLayer(this.routeLine);
+          this.routeLine = null;
       }
       this.hubConnection?.stop();
       this.hubConnection = null;
