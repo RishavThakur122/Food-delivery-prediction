@@ -117,6 +117,16 @@ app.MapMethods("/api/orders/{orderId}/cancel", ["PATCH"],
 
         return Results.Ok(order);
     });
+// Driver dashboard — list orders waiting for a driver
+app.MapGet("/api/orders/available", (OrderStore orders) =>
+{
+    var available = orders.GetAll()
+        .Where(o => o.Status == "Waiting for driver")
+        .ToList();
+
+    return Results.Ok(available);
+});
+
 
 //Auth 
 app.MapPost("/api/auth/register", async (RegisterDto dto, AuthService auth) =>

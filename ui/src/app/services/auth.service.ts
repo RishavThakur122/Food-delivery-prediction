@@ -27,6 +27,12 @@ export class AuthService {
             return decoded.name ?? '';
         } catch { return ''; }
     }
+    getUserId(): string {
+        try {
+            const decoded: any = jwtDecode(this.getToken()!);
+            return decoded.userId ?? '';
+        } catch { return ''; }
+    }
 
     async register(dto: RegisterRequest): Promise<AuthResponse> {
         const res = await fetch(`${API}/register`, {

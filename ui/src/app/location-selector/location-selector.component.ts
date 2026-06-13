@@ -70,6 +70,7 @@ export interface LocPin {
   </div>
   <div class="brand-right">
     <div class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
+    <button class="btn-driver" (click)="goDriver()">Driver Mode</button>
     <button class="btn-logout" (click)="logout()">Logout</button>
   </div>
        </div>
@@ -1053,6 +1054,18 @@ export interface LocPin {
 }
 .toast-close:hover { color: var(--ink); }
 
+.btn-driver {
+  background: transparent;
+  border: 1.5px solid var(--bdr);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 0.68rem;
+  color: var(--mid);
+  cursor: pointer;
+  font-family: var(--body);
+  transition: all 0.15s;
+}
+.btn-driver:hover { border-color: var(--or); color: var(--or); }
     /* ── Responsive ──────────────────────────────────── */
     @media (max-width: 680px) {
       .panel { width: calc(100vw - 36px); top: auto; bottom: 18px; left: 18px; right: 18px; max-height: 55vh; }
@@ -1105,7 +1118,9 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   }
   get etaMin(): number { return Math.round(parseFloat(this.distance) * 3 + 8); }
   get etaMax(): number { return this.etaMin + 10; }
-
+    goDriver(): void {
+        this.router.navigate(['/driver']);
+    }
     constructor(private zone: NgZone, private auth: AuthService, private router: Router) { }
 
   ngOnInit(): void      { this.loadLeaflet(); }
