@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
+using SwiftBite.API.Data;
 using SwiftBite.API.DTOs;
 using SwiftBite.API.Hubs;
+using SwiftBite.API.Models;
 
 namespace SwiftBite.API.Services;
 
@@ -13,6 +15,7 @@ public class DelayDetector
     private readonly TrackingStore _tracking;
     private readonly IHubContext<TrackingHub> _hub;
     private readonly IConfiguration _config;
+    private readonly IServiceScopeFactory _scope;
 
     // track which orders already got an alert — avoid spamming
     private readonly HashSet<string> _alerted = new();
@@ -24,7 +27,8 @@ public class DelayDetector
         OrderStore orders,
          TrackingStore tracking,
         IHubContext<TrackingHub> hub,
-        IConfiguration config)
+        IConfiguration config,
+        IServiceScopeFactory scope)
     {
         _osrm = osrm;
         _tomtom = tomtom;
@@ -33,7 +37,7 @@ public class DelayDetector
         _hub = hub;
         _tracking = tracking;
         _config = config;
-    }
+        _scope = scope; }
 
     public async Task CheckAsync(LocationUpdateDto update)
     {
@@ -102,7 +106,18 @@ public class DelayDetector
 
         await _hub.Clients.Group(update.OrderId)
             .SendAsync("DelayAlert", alert);
+        // save to MySQL
+        using var db = _scope.CreateScope()
+                             .ServiceProvider
+                             .GetRequiredService<AppDbContext>();
 
+        db.DelayAlerts.Add(new DelayAlertEntity
+        {
+            OrderId = update.OrderId,
+            ExtraMinutes = (int)extraMinutes,
+            Reason = reason
+        });
+        await db.SaveChangesAsync();
         // mark as alerted — one alert per order
         _alerted.Add(update.OrderId);
     }

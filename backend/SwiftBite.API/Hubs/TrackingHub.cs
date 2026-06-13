@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
+using SwiftBite.API.Data;
 using SwiftBite.API.DTOs;
+using SwiftBite.API.Models;
 using SwiftBite.API.Services;
 
 namespace SwiftBite.API.Hubs;
@@ -9,12 +11,13 @@ public class TrackingHub : Hub
     private readonly TrackingStore _store;
     private readonly OrderStore _orders;
     private readonly DelayDetector _delay;
-
-    public TrackingHub(TrackingStore store, OrderStore orders, DelayDetector delay)
+    private readonly IServiceScopeFactory _scope;
+    public TrackingHub(TrackingStore store, OrderStore orders, DelayDetector delay, IServiceScopeFactory scope)
     {
         _store = store;
         _orders = orders;
         _delay = delay;
+        _scope = scope;
     }
 
     //Delivery man: register for an order
@@ -50,6 +53,23 @@ public class TrackingHub : Hub
         if (snap.Status == "Arrived")
             await Clients.Group(update.OrderId).SendAsync("DeliveryArrived", update.OrderId);
         _ = Task.Run(() => _delay.CheckAsync(update));
+        // save GPS point to history
+        _ = Task.Run(async () =>
+        {
+            using var db = _scope.CreateScope()
+                                 .ServiceProvider
+                                 .GetRequiredService<AppDbContext>();
+            db.AgentLocations.Add(new AgentLocationEntity
+            {
+                OrderId = update.OrderId,
+                Latitude = update.Location.Lat,
+                Longitude = update.Location.Lng,
+                SpeedKmh = update.SpeedKmh,
+                Heading = update.Heading,
+                RecordedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        });
     }
 
     //  Customer: subscribe to watch an order

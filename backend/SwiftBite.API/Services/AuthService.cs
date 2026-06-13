@@ -17,13 +17,13 @@ public class AuthService
         _config = config;
     }
 
-    public (bool success, string error, AuthResponseDto? result) Register(RegisterDto dto)
+    public async Task<(bool success, string error, AuthResponseDto? result)> RegisterAsync(RegisterDto dto)
     {
-        if (_users.EmailExists(dto.Email))
+        if (await _users.EmailExistsAsync(dto.Email))
             return (false, "Email already registered", null);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        var user = _users.Create(dto.Name, dto.Email, hash);
+        var user = await _users.CreateAsync(dto.Name, dto.Email, hash);
 
         return (true, "", new AuthResponseDto
         {
@@ -32,10 +32,9 @@ public class AuthService
             Name = user.Name
         });
     }
-
-    public (bool success, string error, AuthResponseDto? result) Login(LoginDto dto)
+    public async Task<(bool success, string error, AuthResponseDto? result)> LoginAsync(LoginDto dto)
     {
-        var user = _users.FindByEmail(dto.Email);
+        var user = await _users.FindByEmailAsync(dto.Email);
         if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return (false, "Invalid email or password", null);
 
@@ -46,7 +45,6 @@ public class AuthService
             Name = user.Name
         });
     }
-
     private string GenerateToken(UserRecord user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!));

@@ -201,15 +201,23 @@ export interface LocPin {
       </div>
 
       <div class="result-stats">
-        <div class="rs-item">
-          <div class="rs-k">Distance</div>
-          <div class="rs-v">{{ distance }} km</div>
-        </div>
-        <div class="rs-item">
-          <div class="rs-k">Estimated Delivery</div>
-          <div class="rs-v">{{ etaMin }}–{{ etaMax }} min</div>
-        </div>
-      </div>
+  <div class="rs-item">
+    <div class="rs-k">Road Distance</div>
+    <div class="rs-v">{{ roadDistanceKm }} km</div>
+  </div>
+  <div class="rs-item">
+    <div class="rs-k">AI Predicted ETA</div>
+    <div class="rs-v">{{ etaMinutes }} min</div>
+  </div>
+  <div class="rs-item">
+    <div class="rs-k">Traffic Delay</div>
+    <div class="rs-v">+{{ trafficDelayMin }} min</div>
+  </div>
+  <div class="rs-item">
+    <div class="rs-k">Order ID</div>
+    <div class="rs-v"># {{ orderId }}</div>
+  </div>
+</div>
 
       <button class="reset-btn full" (click)="resetAll()">Start Over</button>
     </div>
@@ -868,11 +876,11 @@ export interface LocPin {
     .rb-coord { font-family: monospace; font-size: 0.64rem; color: var(--mid); }
 
     .result-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
     .rs-item {
       background: var(--ink);
       border-radius: 10px;
@@ -1080,7 +1088,10 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   userLoc: LocPin | null = null;
   restLoc: LocPin | null = null;
   searching: 'user' | 'restaurant' | null = null;
-  gpsLoading = false;
+    gpsLoading = false;
+    etaMinutes = 0;
+    roadDistanceKm = 0;
+    trafficDelayMin = 0;
 
   // ── Map ───────────────────────────────────────────────────────────────────
   private map: any   = null;
@@ -1323,22 +1334,29 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
   setMode(m: 'user' | 'restaurant'): void { this.pinMode = m; }
 
   // ── Predict ───────────────────────────────────────────────────────────────
-  async predict(): Promise<void> {
-    const res = await fetch('http://localhost:5000/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userLocation:       { lat: this.userLoc!.lat, lng: this.userLoc!.lng },
-        restaurantLocation: { lat: this.restLoc!.lat, lng: this.restLoc!.lng }
-      })
-    });
+    async predict(): Promise<void> {
+        const res = await fetch('http://localhost:5000/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.auth.getToken()}` },
+            body: JSON.stringify({
+                userLocation: { lat: this.userLoc!.lat, lng: this.userLoc!.lng },
+                restaurantLocation: { lat: this.restLoc!.lat, lng: this.restLoc!.lng }
+            })
+        });
+        if (res.status === 401) {
+            this.auth.logout();
+            this.router.navigate(['/login']);
+            return;
+        }
+        const data = await res.json();
+        this.orderId = data.order.orderId;
+        this.etaMinutes = data.etaMinutes;
+        this.roadDistanceKm = data.roadDistanceKm;
+        this.trafficDelayMin = data.trafficDelayMin;
 
-    const order = await res.json();
-     this.orderId = order.orderId;   
-      this.startPolling(this.orderId!);
-
-    this.showSuccess = true;
-  }
+        this.startSignalR(this.orderId!);
+        this.showSuccess = true;
+    }
   
   
 async fetchOrder(orderId: string): Promise<void> {

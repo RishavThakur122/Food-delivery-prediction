@@ -1,11 +1,11 @@
 import { Component } from '@angular/core';
-import { LocationSelectorComponent } from './location-selector/location-selector.component';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [LocationSelectorComponent],
-  template: `<app-location-selector></app-location-selector>`,
-  styles: [`:host { display: block; height: 100vh; }`]
+    selector: 'app-root',
+    standalone: true,
+    imports: [RouterOutlet],
+    template: `<router-outlet></router-outlet>`,
+    styles: [`:host { display: block; height: 100vh; }`]
 })
-export class AppComponent {}
+export class AppComponent { }
