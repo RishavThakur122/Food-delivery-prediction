@@ -29,7 +29,8 @@ public class AuthService
         {
             Token = GenerateToken(user),
             UserId = user.UserId,
-            Name = user.Name
+            Name = user.Name,
+            Role = user.Role
         });
     }
     public async Task<(bool success, string error, AuthResponseDto? result)> LoginAsync(LoginDto dto)
@@ -42,7 +43,8 @@ public class AuthService
         {
             Token = GenerateToken(user),
             UserId = user.UserId,
-            Name = user.Name
+            Name = user.Name,
+             Role = user.Role
         });
     }
     private string GenerateToken(UserRecord user)
@@ -54,6 +56,7 @@ public class AuthService
             claims: [
                 new Claim("userId", user.UserId),
                 new Claim("name",   user.Name),
+                 new Claim("role",   user.Role),
                 new Claim(ClaimTypes.Email, user.Email)
             ],
             expires: DateTime.UtcNow.AddDays(7),

@@ -25,16 +25,23 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddSingleton<OllamaService>();
 builder.Services.AddSingleton<DelayDetector>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o => o.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
-        ValidateIssuer = false,
-        ValidateAudience = false
+
+    .AddJwtBearer(o => {
+        o.MapInboundClaims = false;
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireClaim("role", "admin"));
+});
 builder.Services.AddCors(o => o.AddPolicy("dev", p =>
     p.WithOrigins("http://localhost:4200","http://localhost:5000")
      .AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
@@ -140,6 +147,23 @@ app.MapPost("/api/auth/login", async (LoginDto dto, AuthService auth) =>
     var (success, error, result) = await auth.LoginAsync(dto);
     return success ? Results.Ok(result) : Results.Unauthorized();
 });
+// Admin 
+app.MapGet("/api/admin/users", async (AppDbContext db) =>
+{
+    var users = await db.Users
+        .OrderByDescending(u => u.CreatedAt)
+        .Select(u => new
+        {
+            u.UserId,
+            u.Name,
+            u.Email,
+            u.Role,
+            u.CreatedAt
+        })
+        .ToListAsync();
+
+    return Results.Ok(users);
+}).RequireAuthorization("AdminOnly");
 app.MapPost("/api/orders", async (
      HttpContext http,
     CreateOrderDto dto,

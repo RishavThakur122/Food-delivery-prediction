@@ -47,8 +47,9 @@ const API = 'http://localhost:5000/api/orders';
 
     <!-- success message -->
     <div class="success-msg" *ngIf="acceptedOrderId">
-      ✅ Order <strong>#{{ acceptedOrderId }}</strong> accepted! Open the driver app on your phone to start sharing GPS for this order.
-    </div>
+  ✅ Order <strong>#{{ acceptedOrderId }}</strong> accepted!
+  <button class="btn-track" (click)="goTrack(acceptedOrderId)">Start Live Tracking →</button>
+</div>
 
     <!-- empty state -->
     <div class="empty" *ngIf="!loading && orders.length === 0">
@@ -260,7 +261,19 @@ const API = 'http://localhost:5000/api/orders';
     }
     .btn-accept:hover:not(:disabled) { opacity: 0.88; }
     .btn-accept:disabled { opacity: 0.6; cursor: not-allowed; }
-
+    .btn-track {
+  margin-top: 8px;
+  width: 100%;
+  padding: 10px;
+  background: #0E8F57;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
     .spin {
       width: 14px; height: 14px;
       border: 2px solid rgba(0,0,0,0.15);
@@ -324,5 +337,8 @@ export class DriverListComponent implements OnInit, OnDestroy {
 
     goHome(): void {
         this.router.navigate(['/']);
+    }
+    goTrack(orderId: string): void {
+        this.router.navigate(['/driver/track', orderId]);
     }
 }

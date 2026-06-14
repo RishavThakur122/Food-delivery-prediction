@@ -10,7 +10,9 @@ public class UserRecord
     public string UserId { get; set; } = "";
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
+   
     public string PasswordHash { get; set; } = "";
+    public string Role { get; set; } = "customer";
 }
 
 public class UserStore
@@ -43,7 +45,8 @@ public class UserStore
             UserId = entity.UserId.ToString(),
             Name = entity.Name,
             Email = entity.Email,
-            PasswordHash = entity.PasswordHash
+            PasswordHash = entity.PasswordHash,
+            Role = entity.Role
         };
 
         _byEmail[email] = user; // cache it
@@ -76,7 +79,8 @@ public class UserStore
             UserId = entity.UserId.ToString(),
             Name = entity.Name,
             Email = entity.Email,
-            PasswordHash = entity.PasswordHash
+            PasswordHash = entity.PasswordHash,
+            Role = entity.Role
         };
 
         _byEmail[user.Email] = user;

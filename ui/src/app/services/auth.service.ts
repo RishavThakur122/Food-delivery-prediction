@@ -33,6 +33,16 @@ export class AuthService {
             return decoded.userId ?? '';
         } catch { return ''; }
     }
+    getRole(): string {
+        try {
+            const decoded: any = jwtDecode(this.getToken()!);
+            return decoded.role ?? 'customer';
+        } catch { return 'customer'; }
+    }
+
+    isAdmin(): boolean {
+        return this.getRole() === 'admin';
+    }
 
     async register(dto: RegisterRequest): Promise<AuthResponse> {
         const res = await fetch(`${API}/register`, {
