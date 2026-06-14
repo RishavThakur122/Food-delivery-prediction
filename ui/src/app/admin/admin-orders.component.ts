@@ -3,18 +3,21 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
-interface UserRow {
-    userId: number;
-    name: string;
-    email: string;
-    role: string;
+interface OrderRow {
+    orderId: string;
+    status: string;
+    driverId: string | null;
+    customerName: string;
+    customerEmail: string;
+    originalEtaMinutes: number | null;
     createdAt: string;
+    deliveredAt: string | null;
 }
 
 const API = 'http://localhost:5000/api/admin';
 
 @Component({
-    selector: 'app-admin-users',
+    selector: 'app-admin-orders',
     standalone: true,
     imports: [CommonModule],
     template: `
@@ -32,37 +35,44 @@ const API = 'http://localhost:5000/api/admin';
   </header>
 
   <nav class="tabs">
-    <a class="tab active">Users</a>
-    <a class="tab" (click)="goOrders()">Orders</a>
+    <a routerLink="/admin"        class="tab" (click)="goUsers()">Users</a>
+    <a class="tab active">Orders</a>
   </nav>
 
   <div class="content">
 
-    <h2 class="section-title">Users ({{ users.length }})</h2>
+    <h2 class="section-title">Orders ({{ orders.length }})</h2>
 
     <div class="loading" *ngIf="loading">Loading…</div>
-
-    <table class="users-table" *ngIf="!loading">
+    <div class="table-scroll" *ngIf="!loading">
+    <table class="orders-table" >
       <thead>
         <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Joined</th>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Status</th>
+          <th>Driver</th>
+          <th>ETA</th>
+          <th>Placed</th>
+          <th>Delivered</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let u of users">
-          <td>{{ u.userId }}</td>
-          <td>{{ u.name }}</td>
-          <td>{{ u.email }}</td>
-          <td><span class="role-badge" [class.admin]="u.role === 'admin'">{{ u.role }}</span></td>
-          <td>{{ u.createdAt | date:'MMM d, y, h:mm a' }}</td>
+        <tr *ngFor="let o of orders">
+          <td class="mono">{{ o.orderId }}</td>
+          <td>
+            <div class="cust-name">{{ o.customerName }}</div>
+            <div class="cust-email">{{ o.customerEmail }}</div>
+          </td>
+          <td><span class="status-badge" [ngClass]="statusClass(o.status)">{{ o.status }}</span></td>
+          <td class="mono">{{ o.driverId || '—' }}</td>
+          <td>{{ o.originalEtaMinutes ? o.originalEtaMinutes + ' min' : '—' }}</td>
+          <td>{{ o.createdAt | date:'MMM d, h:mm a' }}</td>
+          <td>{{ o.deliveredAt ? (o.deliveredAt | date:'MMM d, h:mm a') : '—' }}</td>
         </tr>
       </tbody>
     </table>
-
+    </div>
   </div>
 </div>
   `,
@@ -74,6 +84,7 @@ const API = 'http://localhost:5000/api/admin';
       --ink:  #18130F;
       --mid:  #6B6560;
       --pale: #F5F0EB;
+      --grn:  #10B86C;
       --bdr:  rgba(24,19,15,0.10);
       --font: 'Syne', sans-serif;
       --body: 'DM Sans', sans-serif;
@@ -116,10 +127,19 @@ const API = 'http://localhost:5000/api/admin';
       border-bottom: 2px solid transparent;
       transition: all 0.15s;
     }
+
+    .table-scroll {
+  overflow-x: auto;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(24,19,15,0.04);
+}
+.table-scroll .orders-table {
+  box-shadow: none;
+}
     .tab:hover { color: var(--ink); }
     .tab.active { color: var(--or); border-bottom-color: var(--or); }
 
-    .content { max-width: 900px; margin: 0 auto; padding: 24px; }
+    .content { max-width: 1100px; margin: 0 auto; padding: 24px; }
 
     .section-title {
       font-family: var(--font); font-size: 1.1rem; font-weight: 800;
@@ -128,53 +148,69 @@ const API = 'http://localhost:5000/api/admin';
 
     .loading { color: var(--mid); font-size: 0.85rem; padding: 20px 0; }
 
-    .users-table {
+    .orders-table {
       width: 100%; border-collapse: collapse;
       background: white; border-radius: 14px; overflow: hidden;
       box-shadow: 0 2px 12px rgba(24,19,15,0.04);
     }
-    .users-table th {
-      text-align: left; padding: 12px 16px;
+    .orders-table th {
+      text-align: left; padding: 12px 14px;
       background: var(--ink); color: white;
-      font-size: 0.7rem; font-weight: 700;
+      font-size: 0.66rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.06em;
+      white-space: nowrap;
     }
-    .users-table td {
-      padding: 12px 16px; border-bottom: 1px solid var(--bdr);
-      font-size: 0.82rem; color: var(--ink);
+    .orders-table td {
+      padding: 12px 14px; border-bottom: 1px solid var(--bdr);
+      font-size: 0.8rem; color: var(--ink);
+      white-space: nowrap;
     }
-    .users-table tr:last-child td { border-bottom: none; }
-    .users-table tr:hover { background: var(--pale); }
+    .orders-table tr:last-child td { border-bottom: none; }
+    .orders-table tr:hover { background: var(--pale); }
 
-    .role-badge {
+    .mono { font-family: monospace; font-size: 0.74rem; color: var(--mid); }
+
+    .cust-name  { font-weight: 600; }
+    .cust-email { font-size: 0.7rem; color: var(--mid); }
+
+    .status-badge {
       display: inline-block;
       padding: 3px 10px; border-radius: 20px;
-      font-size: 0.68rem; font-weight: 700;
+      font-size: 0.66rem; font-weight: 700;
       background: var(--pale); color: var(--mid);
-      text-transform: capitalize;
     }
-    .role-badge.admin { background: #FFF0EB; color: var(--or); }
+    .status-badge.waiting   { background: #F0EBE6; color: var(--mid); }
+    .status-badge.active    { background: #FFF0EB; color: var(--or); }
+    .status-badge.arrived   { background: #E8FBF3; color: var(--grn); }
+    .status-badge.cancelled { background: #FFF0EE; color: #E53935; }
   `]
 })
-export class AdminUsersComponent implements OnInit {
-    users: UserRow[] = [];
+export class AdminOrdersComponent implements OnInit {
+    orders: OrderRow[] = [];
     loading = true;
 
     constructor(private auth: AuthService, private router: Router) { }
 
     async ngOnInit(): Promise<void> {
         try {
-            const res = await fetch(`${API}/users`, {
+            const res = await fetch(`${API}/orders`, {
                 headers: { 'Authorization': `Bearer ${this.auth.getToken()}` }
             });
-            this.users = await res.json();
+            this.orders = await res.json();
+        } catch {
+            this.orders = [];
         } finally {
             this.loading = false;
         }
     }
 
-    goHome(): void {
-        this.router.navigate(['/']);
+    statusClass(status: string): string {
+        if (status === 'Waiting for driver') return 'waiting';
+        if (status === 'Arrived') return 'arrived';
+        if (status === 'Cancelled') return 'cancelled';
+        return 'active'; // Driver Assigned / En Route / Nearby
     }
-    goOrders(): void { this.router.navigate(['/admin/orders']); }
+
+    goUsers(): void { this.router.navigate(['/admin']); }
+    goHome(): void { this.router.navigate(['/']); }
 }

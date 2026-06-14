@@ -124,6 +124,7 @@ app.MapMethods("/api/orders/{orderId}/cancel", ["PATCH"],
 
         return Results.Ok(order);
     });
+
 // Driver dashboard — list orders waiting for a driver
 app.MapGet("/api/orders/available", (OrderStore orders) =>
 {
@@ -163,6 +164,27 @@ app.MapGet("/api/admin/users", async (AppDbContext db) =>
         .ToListAsync();
 
     return Results.Ok(users);
+}).RequireAuthorization("AdminOnly");
+
+app.MapGet("/api/admin/orders", async (AppDbContext db) =>
+{
+    var orders = await db.Orders
+        .Include(o => o.User)
+        .OrderByDescending(o => o.CreatedAt)
+        .Select(o => new
+        {
+            o.OrderId,
+            o.Status,
+            o.DriverId,
+            CustomerName = o.User != null ? o.User.Name : "Unknown",
+            CustomerEmail = o.User != null ? o.User.Email : "",
+            o.OriginalEtaMinutes,
+            o.CreatedAt,
+            o.DeliveredAt
+        })
+        .ToListAsync();
+
+    return Results.Ok(orders);
 }).RequireAuthorization("AdminOnly");
 app.MapPost("/api/orders", async (
      HttpContext http,
