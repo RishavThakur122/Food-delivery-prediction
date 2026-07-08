@@ -32,6 +32,17 @@ import { AuthService } from '../services/auth.service';
       <label>Full Name</label>
       <input type="text" [(ngModel)]="name" placeholder="Your name" />
     </div>
+    <div class="field" *ngIf="mode==='register'">
+  <label>I am a</label>
+  <div class="role-toggle">
+    <button class="role-btn" [class.active]="role==='customer'" (click)="role='customer'">
+      🛍️ Customer
+    </button>
+    <button class="role-btn" [class.active]="role==='driver'" (click)="role='driver'">
+      🛵 Driver
+    </button>
+  </div>
+</div>
 
     <div class="field">
       <label>Email</label>
@@ -174,7 +185,29 @@ import { AuthService } from '../services/auth.service';
       border-radius: 8px;
       padding: 9px 12px;
     }
-
+    .role-toggle {
+  display: flex;
+  gap: 6px;
+}
+.role-btn {
+  flex: 1;
+  padding: 9px;
+  border: 1.5px solid var(--bdr);
+  border-radius: 10px;
+  background: white;
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--mid);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.role-btn.active {
+  border-color: var(--or);
+  background: #FFF0EB;
+  color: var(--or);
+  font-weight: 700;
+}
     .btn-submit {
       width: 100%;
       padding: 12px;
@@ -207,7 +240,7 @@ import { AuthService } from '../services/auth.service';
 })
 export class AuthComponent {
     mode: 'login' | 'register' = 'login';
-
+    role: 'customer' | 'driver' = 'customer';
     name = '';
     email = '';
     password = '';
@@ -215,8 +248,17 @@ export class AuthComponent {
     loading = false;
 
     constructor(private auth: AuthService, private router: Router) {
-        // already logged in — go straight to app
-        if (this.auth.isLoggedIn()) this.router.navigate(['/']);
+        // already logged in — go to appropriate dashboard based on role
+        if (this.auth.isLoggedIn()) {
+            const role = this.auth.getRole();
+            if (role === 'driver') {
+                this.router.navigate(['/driver']);
+            } else if (role === 'admin') {
+                this.router.navigate(['/admin']);
+            } else {
+                this.router.navigate(['/']);
+            }
+        }
     }
 
     async submit(): Promise<void> {
@@ -228,9 +270,18 @@ export class AuthComponent {
                 await this.auth.login({ email: this.email, password: this.password });
             } else {
                 if (!this.name.trim()) { this.error = 'Name is required'; this.loading = false; return; }
-                await this.auth.register({ name: this.name, email: this.email, password: this.password });
+                await this.auth.register({ name: this.name, email: this.email, password: this.password, role: this.role });
             }
-            this.router.navigate(['/']);
+
+            // Route to appropriate dashboard based on role
+            const role = this.auth.getRole();
+            if (role === 'driver') {
+                this.router.navigate(['/driver']);
+            } else if (role === 'admin') {
+                this.router.navigate(['/admin']);
+            } else {
+                this.router.navigate(['/']);
+            }
         } catch (e: any) {
             this.error = e.message;
         } finally {

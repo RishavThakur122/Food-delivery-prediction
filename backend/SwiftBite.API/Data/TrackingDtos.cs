@@ -51,11 +51,12 @@ public class CreateOrderDto
 public class OrderDto
 {
     public string OrderId { get; set; } = "";
+    public int UserId { get; set; }  // ← add this line
     public CoordinateDto UserLocation { get; set; } = new(0, 0);
     public CoordinateDto RestaurantLocation { get; set; } = new(0, 0);
     public string Status { get; set; } = "Waiting for driver";
     public string? DriverId { get; set; }
-    public int? OriginalEtaMinutes { get; set; }  // ← add this
+    public int? OriginalEtaMinutes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 public class RouteInfo

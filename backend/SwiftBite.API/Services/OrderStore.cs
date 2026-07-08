@@ -26,6 +26,7 @@ public class OrderStore
         var order = new OrderDto
         {
             OrderId = Guid.NewGuid().ToString("N")[..8].ToUpper(),
+            UserId = int.Parse(userId),
             UserLocation = dto.UserLocation,
             RestaurantLocation = dto.RestaurantLocation,
             OriginalEtaMinutes = etaMinutes

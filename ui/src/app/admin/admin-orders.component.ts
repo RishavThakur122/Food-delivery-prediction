@@ -31,7 +31,7 @@ const API = 'http://localhost:5000/api/admin';
         <div class="brand-sub">Admin Dashboard</div>
       </div>
     </div>
-    <button class="btn-back" (click)="goHome()">← Back to App</button>
+    <button class="btn-back" (click)="goOut()">← Back to Login</button>
   </header>
 
   <nav class="tabs">
@@ -213,4 +213,8 @@ export class AdminOrdersComponent implements OnInit {
 
     goUsers(): void { this.router.navigate(['/admin']); }
     goHome(): void { this.router.navigate(['/']); }
+    goOut(): void {
+        this.auth.logout();
+        this.router.navigate(['/login']);
+    }
 }

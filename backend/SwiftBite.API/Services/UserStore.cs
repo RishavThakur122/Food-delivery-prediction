@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using SwiftBite.API.Data;
 using SwiftBite.API.Models;
@@ -10,37 +9,28 @@ public class UserRecord
     public string UserId { get; set; } = "";
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
-   
     public string PasswordHash { get; set; } = "";
     public string Role { get; set; } = "customer";
 }
 
 public class UserStore
 {
-    private readonly ConcurrentDictionary<string, UserRecord> _byEmail = new();
-    private readonly IServiceScopeFactory _scope;
+    private readonly AppDbContext _db;
 
-    public UserStore(IServiceScopeFactory scope)
+    public UserStore(AppDbContext db)
     {
-        _scope = scope;
+        _db = db;
     }
 
-    // now async — checks memory first, then DB
     public async Task<UserRecord?> FindByEmailAsync(string email)
     {
-        email = email.ToLower();
+        var entity = await _db.Users
+            .FirstOrDefaultAsync(u => u.Email == email.ToLower());
 
-        if (_byEmail.TryGetValue(email, out var cached))
-            return cached;
+        if (entity == null)
+            return null;
 
-        using var db = _scope.CreateScope()
-                             .ServiceProvider
-                             .GetRequiredService<AppDbContext>();
-
-        var entity = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (entity is null) return null;
-
-        var user = new UserRecord
+        return new UserRecord
         {
             UserId = entity.UserId.ToString(),
             Name = entity.Name,
@@ -48,33 +38,31 @@ public class UserStore
             PasswordHash = entity.PasswordHash,
             Role = entity.Role
         };
-
-        _byEmail[email] = user; // cache it
-        return user;
     }
 
     public async Task<bool> EmailExistsAsync(string email)
     {
-        return await FindByEmailAsync(email) is not null;
+        return await _db.Users.AnyAsync(u => u.Email == email.ToLower());
     }
 
-    public async Task<UserRecord> CreateAsync(string name, string email, string passwordHash)
+    public async Task<UserRecord> CreateAsync(
+        string name,
+        string email,
+        string passwordHash,
+        string role = "customer")
     {
-        using var db = _scope.CreateScope()
-                             .ServiceProvider
-                             .GetRequiredService<AppDbContext>();
-
         var entity = new UserEntity
         {
             Name = name,
             Email = email.ToLower(),
-            PasswordHash = passwordHash
+            PasswordHash = passwordHash,
+            Role = role
         };
 
-        db.Users.Add(entity);
-        await db.SaveChangesAsync();
+        _db.Users.Add(entity);
+        await _db.SaveChangesAsync();
 
-        var user = new UserRecord
+        return new UserRecord
         {
             UserId = entity.UserId.ToString(),
             Name = entity.Name,
@@ -82,8 +70,5 @@ public class UserStore
             PasswordHash = entity.PasswordHash,
             Role = entity.Role
         };
-
-        _byEmail[user.Email] = user;
-        return user;
     }
 }

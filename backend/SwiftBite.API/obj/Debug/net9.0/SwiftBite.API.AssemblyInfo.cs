@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SwiftBite.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+abd7879cd75ff4cdb699a5c81ab478a49b9ce027")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+230e0538d669b79631f00b6c0016a265f7e265b3")]
 [assembly: System.Reflection.AssemblyProductAttribute("SwiftBite.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SwiftBite.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

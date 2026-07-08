@@ -23,7 +23,7 @@ public class AuthService
             return (false, "Email already registered", null);
 
         var hash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        var user = await _users.CreateAsync(dto.Name, dto.Email, hash);
+        var user = await _users.CreateAsync(dto.Name, dto.Email, hash,dto.Role);
 
         return (true, "", new AuthResponseDto
         {

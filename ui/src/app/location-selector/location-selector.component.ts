@@ -70,7 +70,6 @@ export interface LocPin {
   </div>
   <div class="brand-right">
     <div class="user-avatar">{{ userName.charAt(0).toUpperCase() }}</div>
-    <button class="btn-driver" (click)="goDriver()">Driver Mode</button>
     <button class="btn-logout" (click)="logout()">Logout</button>
   </div>
        </div>
@@ -96,7 +95,7 @@ export interface LocPin {
       <div class="sep"></div>
 
       <!-- search: your location -->
-      <div class="field-group">
+      <div class="field-group" [class.locked]="orderPlaced">
         <label class="field-label">
           <span class="dot u-dot"></span> Your Location
         </label>
@@ -104,13 +103,13 @@ export interface LocPin {
           <input class="search-input" type="text" [(ngModel)]="userQuery"
             placeholder="Search address…"
             (keyup.enter)="searchAddr('user')"
-            [disabled]="searching === 'user'" />
-          <button class="go-btn" (click)="searchAddr('user')" [disabled]="searching === 'user'">
+            [disabled]="searching === 'user' || orderPlaced" />
+          <button class="go-btn" (click)="searchAddr('user')" [disabled]="searching === 'user' || orderPlaced">
             <span *ngIf="searching !== 'user'">→</span>
             <span *ngIf="searching === 'user'" class="spin"></span>
           </button>
         </div>
-        <button class="gps-btn" (click)="useGPS()" [disabled]="gpsLoading">
+        <button class="gps-btn" (click)="useGPS()" [disabled]="gpsLoading || orderPlaced">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
           </svg>
@@ -125,7 +124,7 @@ export interface LocPin {
       </div>
 
       <!-- search: restaurant -->
-      <div class="field-group" [class.locked]="!userLoc">
+      <div class="field-group" [class.locked]="!userLoc || orderPlaced">
         <label class="field-label">
           <span class="dot r-dot"></span> Restaurant
         </label>
@@ -133,8 +132,8 @@ export interface LocPin {
           <input class="search-input" type="text" [(ngModel)]="restQuery"
             placeholder="Search restaurant…"
             (keyup.enter)="searchAddr('restaurant')"
-            [disabled]="searching === 'restaurant' || !userLoc" />
-          <button class="go-btn" (click)="searchAddr('restaurant')" [disabled]="searching === 'restaurant' || !userLoc">
+            [disabled]="searching === 'restaurant' || !userLoc || orderPlaced" />
+          <button class="go-btn" (click)="searchAddr('restaurant')" [disabled]="searching === 'restaurant' || !userLoc || orderPlaced">
             <span *ngIf="searching !== 'restaurant'">→</span>
             <span *ngIf="searching === 'restaurant'" class="spin"></span>
           </button>
@@ -161,16 +160,78 @@ export interface LocPin {
           </div>
         </div>
       </div>
+      <!-- ── Live Tracking State ──────────────────────────────── -->
+<div class="tracking-panel" *ngIf="trackingActive">
 
+  <!-- order id -->
+  <div class="track-order-id">
+    Order <span class="mono">#{{ orderId }}</span>
+  </div>
+
+  <!-- status row -->
+  <div class="status-row">
+    <div class="status-dot"
+      [class.dot-orange]="orderStatus === 'En Route'"
+      [class.dot-yellow]="orderStatus === 'Nearby'"
+      [class.dot-green]="orderStatus === 'Arrived'"
+      [class.dot-gray]="!orderStatus || orderStatus === 'Waiting for driver'"
+      [class.dot-blue]="orderStatus === 'Driver Assigned'">
+    </div>
+    <span class="status-text">{{ orderStatus || 'Waiting for driver' }}</span>
+  </div>
+
+  <!-- driver location map -->
+  <div class="tracking-map-container" *ngIf="driverLocation">
+    <div #trackingMapEl class="tracking-map"></div>
+  </div>
+
+  <!-- waiting for driver acceptance -->
+  <div class="waiting-block" *ngIf="orderStatus !== 'Arrived' && !driverLocation && orderPlaced">
+    <div class="waiting-label">Waiting for driver to accept...</div>
+  </div>
+
+  <!-- arrived state -->
+  <div class="arrived-block" *ngIf="orderStatus === 'Arrived'">
+    <div class="arrived-icon">🎉</div>
+    <div class="arrived-text">Your order has arrived!</div>
+  </div>
+
+  <!-- distance -->
+  <div class="track-row" *ngIf="distanceToUserKm !== null">
+    <span class="track-k">Driver distance</span>
+    <span class="track-v">{{ distanceToUserKm }} km away</span>
+  </div>
+
+  <!-- road distance -->
+  <div class="track-row">
+    <span class="track-k">Road distance</span>
+    <span class="track-v">{{ roadDistanceKm }} km</span>
+  </div>
+
+  <!-- traffic delay -->
+  <div class="track-row" *ngIf="trafficDelayMin > 0">
+    <span class="track-k">Traffic delay</span>
+    <span class="track-v orange">+{{ trafficDelayMin }} min</span>
+  </div>
+
+  <!-- cancel button -->
+  <button class="btn-cancel" *ngIf="orderStatus !== 'Arrived'" (click)="cancelOrder()">
+    Cancel Order
+  </button>
+
+</div>
       <!-- actions -->
       <div class="actions">
-        <button class="predict-btn" *ngIf="userLoc && restLoc" (click)="predict()">
+        <button class="predict-btn" *ngIf="userLoc && restLoc && !orderPlaced" (click)="predict()">
           Get Delivery Prediction
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M5 12h14M12 5l7 7-7 7"/>
           </svg>
         </button>
-        <button class="reset-btn" *ngIf="userLoc || restLoc" (click)="resetAll()">
+        <button class="btn-track-order" *ngIf="orderPlaced" (click)="startTracking()">
+  🛵 Track My Order
+</button>
+        <button class="reset-btn" *ngIf="(userLoc || restLoc) && !orderPlaced && !showSuccess" (click)="resetAll()">
           Reset
         </button>
       </div>
@@ -178,7 +239,6 @@ export interface LocPin {
     </div>
   </aside>
 
-  <!-- ── Success overlay ──────────────────────────────────────── -->
   <div class="overlay" *ngIf="showSuccess" (click)="showSuccess = false">
     <div class="success-card" (click)="$event.stopPropagation()">
 
@@ -220,7 +280,12 @@ export interface LocPin {
   </div>
 </div>
 
-      <button class="reset-btn full" (click)="resetAll()">Start Over</button>
+      <div class="button-group">
+        <button class="btn-place-order" (click)="placeOrderFromPopup()">
+          📦 Place Order
+        </button>
+        <button class="reset-btn" (click)="resetAll()">Start Over</button>
+      </div>
     </div>
   </div>
 
@@ -237,6 +302,28 @@ export interface LocPin {
       </div>
     </div>
     <button class="toast-close" (click)="showDelayToast = false">✕</button>
+  </div>
+</div>
+<!-- ── Driver Assigned Banner ──────────────────────────── -->
+<div class="assigned-banner" *ngIf="driverAssigned">
+  <div class="banner-inner">
+    <span class="banner-icon">🛵</span>
+    <div class="banner-body">
+      <div class="banner-title">Driver Assigned</div>
+      <div class="banner-msg">{{ driverAssignedMsg }}</div>
+    </div>
+    <button class="toast-close" (click)="driverAssigned = false">✕</button>
+  </div>
+</div>
+
+<!-- ── Order Placed Message ──────────────────────── -->
+<div class="assigned-banner order-placed-banner" *ngIf="showOrderPlacedMessage">
+  <div class="banner-inner">
+    <span class="banner-icon">✅</span>
+    <div class="banner-body">
+      <div class="banner-title">Order Placed</div>
+      <div class="banner-msg">Waiting for a driver to accept your order...</div>
+    </div>
   </div>
 </div>
 </div>
@@ -269,7 +356,21 @@ export interface LocPin {
   align-items: center;
   gap: 8px;
 }
-
+.btn-track-order {
+  width: 100%;
+  padding: 13px;
+  background: var(--ink);
+  border: none;
+  border-radius: var(--r);
+  font-family: var(--font);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: opacity 0.15s;
+}
+.btn-track-order:hover { opacity: 0.88; }
 .user-pill {
   display: flex;
   align-items: center;
@@ -297,6 +398,62 @@ export interface LocPin {
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--ink);
+}
+.assigned-banner {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  z-index: 9000;
+  max-width: 360px;
+  width: calc(100% - 56px);
+  animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.banner-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--bdr);
+  border-left: 4px solid var(--grn);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(24,19,15,0.15);
+}
+
+.banner-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.banner-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.banner-title {
+  font-family: var(--font);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--grn);
+}
+
+.banner-msg {
+  font-size: 0.78rem;
+  color: var(--mid);
+  line-height: 1.5;
+}
+
+.order-placed-banner .banner-inner {
+  border-left-color: #4f8ef7;
+  background: linear-gradient(135deg, rgba(79, 142, 247, 0.05) 0%, rgba(79, 142, 247, 0.02) 100%);
+}
+
+.order-placed-banner .banner-title {
+  color: #4f8ef7;
 }
 
 .btn-logout {
@@ -746,6 +903,14 @@ export interface LocPin {
     .predict-btn:hover { opacity: 0.88; transform: translateY(-1px); }
     .predict-btn:active { transform: none; }
 
+    .place-order-btn {
+      background: linear-gradient(135deg, #10B86C 0%, #0d9a5a 100%);
+      font-size: 0.92rem;
+      box-shadow: 0 4px 12px rgba(16, 184, 108, 0.3);
+    }
+    .place-order-btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 184, 108, 0.4); }
+    .place-order-btn:active { transform: translateY(0); }
+
     .reset-btn {
       width: 100%;
       padding: 9px;
@@ -761,6 +926,30 @@ export interface LocPin {
     }
     .reset-btn:hover { border-color: #B5ADA7; color: var(--ink); }
     .reset-btn.full  { margin-top: 4px; }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn-place-order {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #10B86C 0%, #0d9a5a 100%);
+      border: none;
+      border-radius: var(--r);
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.15s;
+      box-shadow: 0 4px 12px rgba(16, 184, 108, 0.3);
+    }
+    .btn-place-order:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(16, 184, 108, 0.4); }
+    .btn-place-order:active { transform: translateY(0); }
 
     /* spinner */
     .spin {
@@ -1065,6 +1254,123 @@ export interface LocPin {
   font-family: var(--body);
   transition: all 0.15s;
 }
+.tracking-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: chipIn 0.3s ease;
+}
+
+.track-order-id {
+  font-size: 0.72rem;
+  color: var(--mid);
+  font-weight: 500;
+}
+.track-order-id .mono {
+  font-family: monospace;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--pale);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-gray   { background: #C5BDB7; }
+.dot-blue   { background: #4f8ef7; animation: pulse 1.4s infinite; }
+.dot-orange { background: var(--or); animation: pulse 1.4s infinite; }
+.dot-yellow { background: #F59E0B; animation: pulse 1.4s infinite; }
+.dot-green  { background: var(--grn); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.status-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.waiting-block {
+  background: var(--ink);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+.waiting-label {
+  font-size: 0.82rem;
+  color: rgba(255,252,250,0.8);
+  font-weight: 600;
+}
+
+.tracking-map-container {
+  width: 100%;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--bdr);
+  margin: 10px 0;
+}
+
+.tracking-map {
+  width: 100%;
+  height: 100%;
+  background: var(--pale);
+}
+
+.arrived-block {
+  text-align: center;
+  padding: 16px;
+  background: var(--grn-lt);
+  border-radius: 12px;
+  border: 1px solid rgba(16,184,108,0.2);
+}
+.arrived-icon { font-size: 2rem; margin-bottom: 6px; }
+.arrived-text {
+  font-family: var(--font);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--grn);
+}
+
+.track-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}
+.track-k { color: var(--mid); }
+.track-v { color: var(--ink); font-weight: 600; }
+.track-v.orange { color: var(--or); }
+
+.btn-cancel {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1.5px solid #FFCDD2;
+  border-radius: 10px;
+  font-family: var(--body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #E53935;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-top: 4px;
+}
+.btn-cancel:hover {
+  background: #FFF0EE;
+}
 .btn-driver:hover { border-color: var(--or); color: var(--or); }
     /* ── Responsive ──────────────────────────────────── */
     @media (max-width: 680px) {
@@ -1079,22 +1385,34 @@ export interface LocPin {
 })
 export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('mapEl') mapEl!: ElementRef;
+  @ViewChild('trackingMapEl') trackingMapEl!: ElementRef;
 
   // ── State ─────────────────────────────────────────────────────────────────
   pinMode: 'user' | 'restaurant' = 'user';
   showSuccess  = false;
+  showOrderPlacedMessage = false;
   panelCollapsed = false;
     orderId: string | null = null;
+    orderPlaced: boolean = false;
     private hubConnection: signalR.HubConnection | null = null;
     driverLocation: { lat: number; lng: number } | null = null;
     orderStatus: string = '';
     private driverMark: any = null;
+    private trackingMap: any = null;
+    private trackingDriverMark: any = null;
+    private trackingRouteLine: any = null;
     userName = this.auth.getUserName();
     showDelayToast = false;
     delayReason = '';
     delayExtraMin = 0;
     delayNewEta = '';
-    
+    driverAssigned = false;
+    driverAssignedMsg = '';
+    trackingActive = false;
+    etaCountdown = 0;
+    private countdownHandle: any = null;
+    distanceToUserKm: number | null = null;
+
   // ── Inputs ────────────────────────────────────────────────────────────────
   userQuery = '';
   restQuery = '';
@@ -1123,11 +1441,25 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
     }
     constructor(private zone: NgZone, private auth: AuthService, private router: Router) { }
 
-  ngOnInit(): void      { this.loadLeaflet(); }
+  ngOnInit(): void {
+    if (this.auth.isAdmin()) {
+      this.router.navigate(['/admin']);
+      return;
+    }
+    this.loadLeaflet();
+  }
   ngAfterViewInit(): void { if ((window as any).L) this.initMap(); }
     ngOnDestroy(): void   {
         this.map?.remove();
         this.hubConnection?.stop(); 
+    }
+    async cancelOrder(): Promise<void> {
+        if (!this.orderId) return;
+        await fetch(`http://localhost:5000/api/orders/${this.orderId}/cancel`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${this.auth.getToken()}` }
+        });
+        this.resetAll();
     }
 
     private startSignalR(orderId: string): void {
@@ -1141,18 +1473,31 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
             this.zone.run(() => {
                 this.driverLocation = snap.deliveryLocation;
                 this.orderStatus = snap.status;
+                this.distanceToUserKm = snap.distanceToUserKm;
+
+                // Initialize map if it hasn't been initialized yet
+                if (!this.trackingMap) {
+                    this.initTrackingMap();
+                }
+
                 this.updateDriverMarker(
                     snap.deliveryLocation.lat,
                     snap.deliveryLocation.lng
                 );
-
-                // draw route if geometry available
                 if (snap.routeGeometry) {
+                    this.routeGeometry = snap.routeGeometry;
                     this.drawRoute(snap.routeGeometry);
+                    this.updateTrackingMap();
                 }
             });
         });
-
+        this.hubConnection.on('OrderAccepted', (data: any) => {
+            this.zone.run(() => {
+                this.driverAssigned = true;
+                this.driverAssignedMsg = data.message;
+                this.orderStatus = 'Driver Assigned';
+            });
+        });
         this.hubConnection.on('DelayAlert', (alert: any) => {
             this.zone.run(() => {
                 this.delayReason = alert.reason;
@@ -1172,6 +1517,7 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
         this.hubConnection.on('OrderCancelled', () => {
             this.zone.run(() => {
                 this.orderStatus = 'Cancelled';
+                this.orderPlaced = false;
             });
         });
 
@@ -1179,6 +1525,12 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
         this.hubConnection.on('DeliveryArrived', () => {
             this.zone.run(() => {
                 this.orderStatus = 'Arrived';
+                if (this.countdownHandle) clearInterval(this.countdownHandle);
+                this.etaCountdown = 0;
+                // Allow customer to place a new order after delivery arrives
+                setTimeout(() => {
+                    this.orderPlaced = false;
+                }, 3000); // Wait 3 seconds after "Arrived" message
             });
         });
 
@@ -1306,6 +1658,88 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
                 .bindPopup('🛵 Driver');
         }
     }
+
+    private initTrackingMap(): void {
+        if (!this.trackingMapEl) return;
+
+        // Initialize map even if driver location is not available yet
+        if (this.trackingMap) {
+            this.trackingMap.remove();
+        }
+
+        // Default to user location if driver location not available
+        const mapCenter = this.driverLocation || this.userLoc;
+        if (!mapCenter) return;
+
+        this.trackingMap = L.map(this.trackingMapEl.nativeElement).setView(
+            [mapCenter.lat, mapCenter.lng],
+            14
+        );
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(this.trackingMap);
+
+        // Add user marker
+        if (this.userLoc) {
+            L.marker([this.userLoc.lat, this.userLoc.lng], { icon: this.uIcon() })
+                .addTo(this.trackingMap)
+                .bindPopup('📍 Your Location');
+        }
+
+        // Add driver marker
+        if (this.driverLocation) {
+            this.trackingDriverMark = L.marker(
+                [this.driverLocation.lat, this.driverLocation.lng],
+                { icon: this.driverIcon() }
+            )
+                .addTo(this.trackingMap)
+                .bindPopup('🛵 Driver');
+        }
+    }
+
+    private updateTrackingMap(): void {
+        if (!this.trackingMap || !this.driverLocation) return;
+
+        // If map wasn't fully initialized, initialize it now
+        if (!this.trackingDriverMark) {
+            this.initTrackingMap();
+            return;
+        }
+
+        // Update driver marker
+        if (this.trackingDriverMark) {
+            this.trackingDriverMark.setLatLng([this.driverLocation.lat, this.driverLocation.lng]);
+            this.trackingMap.panTo([this.driverLocation.lat, this.driverLocation.lng]);
+        }
+
+        // Update route if available
+        if (this.routeGeometry) {
+            this.drawTrackingRoute(this.routeGeometry);
+        }
+    }
+
+    private drawTrackingRoute(geometry: string): void {
+        if (!geometry || !this.trackingMap) return;
+
+        const points = this.decodePolyline(geometry);
+        if (!points.length) return;
+
+        if (this.trackingRouteLine) {
+            this.trackingMap.removeLayer(this.trackingRouteLine);
+        }
+
+        this.trackingRouteLine = L.polyline(points, {
+            color: '#F7510F',
+            weight: 4,
+            opacity: 0.8
+        }).addTo(this.trackingMap);
+
+        this.trackingMap.fitBounds(this.trackingRouteLine.getBounds());
+    }
+
+  private routeGeometry: string = '';
   private async pinRest(ll: { lat: number; lng: number }): Promise<void> {
     const addr = await this.reverseGeo(ll.lat, ll.lng);
     this.restLoc  = { lat: ll.lat, lng: ll.lng, addr };
@@ -1369,17 +1803,40 @@ export class LocationSelectorComponent implements OnInit, AfterViewInit, OnDestr
         this.roadDistanceKm = data.roadDistanceKm;
         this.trafficDelayMin = data.trafficDelayMin;
 
-        this.startSignalR(this.orderId!);
         this.showSuccess = true;
+        this.trackingActive = false;
     }
-  
-  
+
+    placeOrderFromPopup(): void {
+        if (!this.orderId) return;
+        this.showSuccess = false;
+        this.orderPlaced = true;
+        this.showOrderPlacedMessage = true;
+        setTimeout(() => this.showOrderPlacedMessage = false, 3000);
+        this.startSignalR(this.orderId);
+    }
+
+
 async fetchOrder(orderId: string): Promise<void> {
   const res = await fetch(`http://localhost:5000/api/orders/${orderId}`);
   const data = await res.json();
   console.log('Order:', data.order);
   console.log('Tracking:', data.tracking); // null for now
 }
+
+
+    isDriver(): boolean {
+        return this.auth.getRole() === 'driver';
+
+
+    }
+    //tracking view
+    startTracking(): void {
+        this.showSuccess = false;
+        this.trackingActive = true;
+        // Initialize tracking map after view renders
+        setTimeout(() => this.initTrackingMap(), 100);
+    }
 
   // ── Reset ─────────────────────────────────────────────────────────────────
   resetAll(): void {
@@ -1393,6 +1850,11 @@ async fetchOrder(orderId: string): Promise<void> {
       this.delayReason = '';
       this.delayExtraMin = 0;
       this.delayNewEta = '';
+      this.trackingActive = false;
+      this.distanceToUserKm = null;
+      this.orderStatus = '';
+      this.etaCountdown = 0;
+      this.orderPlaced = false;
     if (this.uMark) { this.map.removeLayer(this.uMark); this.uMark = null; }
       if (this.rMark) { this.map.removeLayer(this.rMark); this.rMark = null; }
       if (this.driverMark) {
@@ -1403,11 +1865,43 @@ async fetchOrder(orderId: string): Promise<void> {
           this.map.removeLayer(this.routeLine);
           this.routeLine = null;
       }
+      if (this.trackingDriverMark) {
+          this.trackingMap?.removeLayer(this.trackingDriverMark);
+          this.trackingDriverMark = null;
+      }
+      if (this.trackingRouteLine) {
+          this.trackingMap?.removeLayer(this.trackingRouteLine);
+          this.trackingRouteLine = null;
+      }
+      if (this.countdownHandle) {
+          clearInterval(this.countdownHandle);
+          this.countdownHandle = null;
+      }
       this.hubConnection?.stop();
       this.hubConnection = null;
       this.orderStatus = '';
       this.driverLocation = null;
+      if (this.trackingMap) {
+          this.trackingMap.remove();
+          this.trackingMap = null;
+      }
   }
+    private startCountdown(): void {
+        this.etaCountdown = this.etaMinutes * 60; // convert to seconds
+        this.countdownHandle = setInterval(() => {
+            if (this.etaCountdown > 0) {
+                this.etaCountdown--;
+            } else {
+                clearInterval(this.countdownHandle);
+            }
+        }, 1000);
+    }
+
+    get countdownDisplay(): string {
+        const m = Math.floor(this.etaCountdown / 60);
+        const s = this.etaCountdown % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
 
   // ── Nominatim ─────────────────────────────────────────────────────────────
   private async geocode(q: string): Promise<{ lat: number; lng: number } | null> {

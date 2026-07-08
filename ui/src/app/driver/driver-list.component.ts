@@ -32,7 +32,7 @@ const API = 'http://localhost:5000/api/orders';
         <div class="brand-sub">Driver Dashboard</div>
       </div>
     </div>
-    <button class="btn-back" (click)="goHome()">← Back to App</button>
+    <button class="btn-back" (click)="goHome()">← Back to Login</button>
   </header>
 
   <div class="content">
@@ -310,7 +310,9 @@ export class DriverListComponent implements OnInit, OnDestroy {
     async loadOrders(): Promise<void> {
         this.loading = true;
         try {
-            const res = await fetch(`${API}/available`);
+            const res = await fetch(`${API}/available`, {
+                headers: { 'Authorization': `Bearer ${this.auth.getToken()}` }
+            });
             this.orders = await res.json();
         } catch {
             this.orders = [];
@@ -323,7 +325,8 @@ export class DriverListComponent implements OnInit, OnDestroy {
         this.accepting = orderId;
         try {
             const res = await fetch(`${API}/${orderId}/accept?driverId=${this.driverId}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${this.auth.getToken()}` }
             });
 
             if (res.ok) {
@@ -336,7 +339,8 @@ export class DriverListComponent implements OnInit, OnDestroy {
     }
 
     goHome(): void {
-        this.router.navigate(['/']);
+        this.auth.logout();
+        this.router.navigate(['/login']);
     }
     goTrack(orderId: string): void {
         this.router.navigate(['/driver/track', orderId]);

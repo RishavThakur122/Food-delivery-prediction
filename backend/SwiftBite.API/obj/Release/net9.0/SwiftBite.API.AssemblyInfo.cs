@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SwiftBite.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ab766dcd03c1269e3bb4a5923a952554d0241849")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+230e0538d669b79631f00b6c0016a265f7e265b3")]
 [assembly: System.Reflection.AssemblyProductAttribute("SwiftBite.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SwiftBite.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
